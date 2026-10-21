@@ -52,9 +52,18 @@ export default function SchoolYearScreen() {
 
   const startAllMutation = useMutation({
     mutationFn: () => startYearAllSchools(CURRENT_CALENDAR_YEAR),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["admin-year-status"] });
+      const prev = queryClient.getQueryData(["admin-year-status", CURRENT_CALENDAR_YEAR]);
+      if (prev) {
+        queryClient.setQueryData(["admin-year-status", CURRENT_CALENDAR_YEAR], {
+          ...prev,
+          openSchools: prev.approvedSchools,
+        });
+      }
+      return { prev };
+    },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-year-status"] });
-      queryClient.invalidateQueries({ queryKey: ["years"] });
       showToast(
         result.opened === 0
           ? `Year ${result.year} was already open for every school`
@@ -63,7 +72,16 @@ export default function SchoolYearScreen() {
       );
       setConfirmStartAll(false);
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not start the year for all schools", "error"),
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev !== undefined) {
+        queryClient.setQueryData(["admin-year-status", CURRENT_CALENDAR_YEAR], ctx.prev);
+      }
+      showToast(err.response?.data?.error || "Could not start the year for all schools", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-year-status"] });
+      queryClient.invalidateQueries({ queryKey: ["years"] });
+    },
   });
 
   const onSave = () => {
@@ -196,7 +214,10 @@ export default function SchoolYearScreen() {
               <Button title="Cancel" variant="ghost" onPress={() => setConfirmStartAll(false)} style={{ flex: 1 }} />
               <Button
                 title="Start year"
-                onPress={() => startAllMutation.mutate()}
+                onPress={() => {
+                  setConfirmStartAll(false);
+                  startAllMutation.mutate();
+                }}
                 loading={startAllMutation.isPending}
                 style={{ flex: 1 }}
               />

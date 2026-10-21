@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { FlatList, StyleSheet, TouchableOpacity, View, RefreshControl } from "react-native";
 import Text from "../../components/LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Card from "../../components/Card";
@@ -33,6 +33,7 @@ export default function AdminHomeScreen() {
   const { user, logout } = useAuth();
   const navigation = useNavigation();
   const schoolYear = useSchoolYear();
+  const queryClient = useQueryClient();
   const { data: schools = [], refetch, isRefetching } = useQuery({
     queryKey: ["all-schools"],
     queryFn: fetchAllSchools,
@@ -41,8 +42,10 @@ export default function AdminHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // A school is still being registered — let the optimistic entry stand.
+      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch])
+    }, [refetch, queryClient])
   );
 
   const approved = schools.filter((s) => s.status === "APPROVED").length;

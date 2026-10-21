@@ -35,18 +35,55 @@ export default function RegisterStudentScreen({ route, navigation }) {
 
   const mutation = useMutation({
     mutationFn: (payload) => addStudent(classId, payload),
-    onSuccess: (student) => {
-      queryClient.setQueryData(["class-students", classId], (old = []) => [student, ...(old || [])]);
+    mutationKey: ["create-student"],
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ["class-students", classId] });
+      await queryClient.cancelQueries({ queryKey: ["my-class"] });
+      const prevStudents = queryClient.getQueryData(["class-students", classId]);
+      const prevMyClass = queryClient.getQueryData(["my-class"]);
+      const tempId = `temp-student-${Date.now()}`;
+      const temp = {
+        id: tempId,
+        name: payload.name,
+        admissionNo: payload.admissionNo || null,
+        gender: payload.gender,
+        photoUrl: payload.photoUrl || null,
+        birthDate: payload.birthDate || null,
+        classId,
+      };
+      queryClient.setQueryData(["class-students", classId], (old = []) => [temp, ...(old || [])]);
       queryClient.setQueryData(["my-class"], (old = []) =>
         (old || []).map((c) =>
-          c.id === classId ? { ...c, students: [student, ...(c.students || [])] } : c
+          c.id === classId ? { ...c, students: [temp, ...(c.students || [])] } : c
         )
       );
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      showToast("Student added", "success");
-      navigation.goBack();
+      return { prevStudents, prevMyClass, tempId };
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not register student. Please try again.", "error"),
+    onSuccess: (student, _vars, ctx) => {
+      if (ctx?.tempId) {
+        queryClient.setQueryData(["class-students", classId], (old = []) =>
+          (old || []).map((s) => (s.id === ctx.tempId ? student : s))
+        );
+        queryClient.setQueryData(["my-class"], (old = []) =>
+          (old || []).map((c) => ({
+            ...c,
+            students: (c.students || []).map((s) => (s.id === ctx.tempId ? student : s)),
+          }))
+        );
+      }
+      showToast("Student added", "success");
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevStudents !== undefined) queryClient.setQueryData(["class-students", classId], ctx.prevStudents);
+      if (ctx?.prevMyClass !== undefined) queryClient.setQueryData(["my-class"], ctx.prevMyClass);
+      showToast(err.response?.data?.error || "Could not register student. Please try again.", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-students", classId] });
+      queryClient.invalidateQueries({ queryKey: ["my-class"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 
   const onSubmit = () => {
@@ -80,6 +117,7 @@ export default function RegisterStudentScreen({ route, navigation }) {
       motherName: motherName.trim() || undefined,
       motherPhone: motherPhone.trim() || undefined,
     });
+    navigation.goBack();
   };
 
   const pickPhoto = (source) =>

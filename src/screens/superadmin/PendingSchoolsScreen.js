@@ -30,8 +30,10 @@ export default function PendingSchoolsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // A school is still being registered — let the optimistic entry stand.
+      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch])
+    }, [refetch, queryClient])
   );
 
   const invalidate = () => {

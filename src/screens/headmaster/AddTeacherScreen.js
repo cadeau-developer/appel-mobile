@@ -29,6 +29,7 @@ export default function AddTeacherScreen({ navigation }) {
 
   const mutation = useMutation({
     mutationFn: createTeacher,
+    mutationKey: ["create-teacher"],
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: ["teachers"] });
       const prev = queryClient.getQueryData(["teachers"]);
@@ -46,10 +47,9 @@ export default function AddTeacherScreen({ navigation }) {
         );
       }
       showToast(`${form.name} added. They can log in with the credentials you set.`, "success");
-      navigation.goBack();
     },
     onError: (err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(["teachers"], ctx.prev);
+      if (ctx?.prev !== undefined) queryClient.setQueryData(["teachers"], ctx.prev);
       showToast(err.response?.data?.error || "Could not add teacher. Please try again.", "error");
     },
     onSettled: () => {
@@ -72,6 +72,7 @@ export default function AddTeacherScreen({ navigation }) {
       return;
     }
     mutation.mutate(form);
+    navigation.goBack();
   };
 
   return (

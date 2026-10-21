@@ -18,12 +18,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.attendance.app",
+      "bundleIdentifier": "com.cahierdappel.app",
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.attendance.app",
-      "versionCode": 7,
+      "package": "com.cahierdappel.app",
+      "versionCode": 9,
       "edgeToEdgeEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {

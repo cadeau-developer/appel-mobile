@@ -3,7 +3,7 @@ import { FlatList, StyleSheet, View, RefreshControl } from "react-native";
 import Text from "../../components/LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Button from "../../components/Button";
@@ -15,6 +15,7 @@ import { fetchTeachers } from "../../api/teachers";
 import { colors, radius, spacing, typography } from "../../theme";
 
 export default function TeachersScreen({ navigation }) {
+  const queryClient = useQueryClient();
   const { data: teachers = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["teachers"],
     queryFn: fetchTeachers,
@@ -23,8 +24,10 @@ export default function TeachersScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      // A teacher is still being registered — let the optimistic entry stand.
+      if (queryClient.isMutating({ mutationKey: ["create-teacher"] }) > 0) return;
       refetch();
-    }, [refetch])
+    }, [refetch, queryClient])
   );
 
   return (

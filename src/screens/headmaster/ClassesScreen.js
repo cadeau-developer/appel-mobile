@@ -2,7 +2,7 @@ import React, { useCallback } from "react";
 import { FlatList, StyleSheet, View, RefreshControl, TouchableOpacity } from "react-native";
 import Text from "../../components/LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Button from "../../components/Button";
@@ -13,6 +13,7 @@ import { fetchClasses } from "../../api/classes";
 import { colors, radius, spacing, typography } from "../../theme";
 
 export default function ClassesScreen({ navigation }) {
+  const queryClient = useQueryClient();
   const { data: classes = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["classes"],
     queryFn: fetchClasses,
@@ -20,8 +21,10 @@ export default function ClassesScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      // A class is still being created — let the optimistic entry stand.
+      if (queryClient.isMutating({ mutationKey: ["create-class"] }) > 0) return;
       refetch();
-    }, [refetch])
+    }, [refetch, queryClient])
   );
 
   return (

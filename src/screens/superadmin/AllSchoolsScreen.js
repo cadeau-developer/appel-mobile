@@ -34,8 +34,10 @@ export default function AllSchoolsScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      // A school is still being registered — let the optimistic entry stand.
+      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch])
+    }, [refetch, queryClient])
   );
 
   const approveMutation = useMutation({

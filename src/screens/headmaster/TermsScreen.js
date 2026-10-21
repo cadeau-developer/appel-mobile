@@ -47,52 +47,181 @@ export default function TermsScreen() {
     queryClient.invalidateQueries({ queryKey: ["teacher-dashboard"] });
   };
 
+  // Year and term changes flip the UI immediately on tap; the server call
+  // confirms in the background and a rollback restores everything on error.
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  const snapshotCaches = async () => {
+    await queryClient.cancelQueries({ queryKey: ["terms"] });
+    await queryClient.cancelQueries({ queryKey: ["years"] });
+    return {
+      terms: queryClient.getQueryData(["terms"]),
+      years: queryClient.getQueryData(["years"]),
+    };
+  };
+
+  const restoreCaches = (prev) => {
+    if (prev?.terms !== undefined) queryClient.setQueryData(["terms"], prev.terms);
+    if (prev?.years !== undefined) queryClient.setQueryData(["years"], prev.years);
+  };
+
   const startTermMutation = useMutation({
     mutationFn: startTerm,
+    onMutate: async () => {
+      const prev = await snapshotCaches();
+      queryClient.setQueryData(["terms"], (old) => {
+        if (!old) return old;
+        const number = old.terms.length ? Math.max(...old.terms.map((t) => t.number)) + 1 : 1;
+        const term = { id: `temp-term-${Date.now()}`, number, name: `Term ${number}`, starts: todayISO, ends: null, current: true };
+        return { ...old, terms: [...old.terms, term], currentTerm: term, canStart: false };
+      });
+      return { prev };
+    },
     onSuccess: (result) => {
-      invalidateAll();
+      queryClient.setQueryData(["terms"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          terms: old.terms.map((t) => (String(t.id).startsWith("temp-") ? result.currentTerm : t)),
+          currentTerm: result.currentTerm,
+          canStart: false,
+        };
+      });
       showToast(`${result.currentTerm.name} started`, "success");
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not start the term", "error"),
+    onError: (err, _vars, ctx) => {
+      restoreCaches(ctx?.prev);
+      showToast(err.response?.data?.error || "Could not start the term", "error");
+    },
+    onSettled: () => invalidateAll(),
   });
 
   const endTermMutation = useMutation({
     mutationFn: endTerm,
+    onMutate: async () => {
+      const prev = await snapshotCaches();
+      queryClient.setQueryData(["terms"], (old) => {
+        if (!old || !old.currentTerm) return old;
+        const ended = { ...old.currentTerm, ends: todayISO, current: false };
+        return {
+          ...old,
+          terms: old.terms.map((t) => (t.id === old.currentTerm.id ? ended : t)),
+          currentTerm: null,
+          canStart: true,
+        };
+      });
+      return { prev };
+    },
     onSuccess: (result) => {
-      invalidateAll();
       showToast(`${result.ended.name} ended`, "success");
       setConfirmEndTerm(false);
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not end the term", "error"),
+    onError: (err, _vars, ctx) => {
+      restoreCaches(ctx?.prev);
+      showToast(err.response?.data?.error || "Could not end the term", "error");
+    },
+    onSettled: () => invalidateAll(),
   });
 
   const startYearMutation = useMutation({
     mutationFn: startYear,
+    onMutate: async () => {
+      const prev = await snapshotCaches();
+      queryClient.setQueryData(["years"], (old) => {
+        if (!old) return old;
+        const existing = old.years.find((y) => y.year === CURRENT_YEAR);
+        const currentYear = existing
+          ? { ...existing, starts: todayISO, ends: null, current: true }
+          : { id: `temp-year-${Date.now()}`, year: CURRENT_YEAR, starts: todayISO, ends: null, current: true };
+        const years = existing
+          ? old.years.map((y) => (y.year === CURRENT_YEAR ? currentYear : y))
+          : [...old.years, currentYear];
+        return { ...old, years, currentYear, canStart: false };
+      });
+      return { prev };
+    },
     onSuccess: (result) => {
-      invalidateAll();
+      queryClient.setQueryData(["years"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          years: old.years.map((y) => (String(y.id).startsWith("temp-") || y.year === result.currentYear.year ? { ...result.currentYear } : y)),
+          currentYear: result.currentYear,
+          canStart: false,
+        };
+      });
       showToast(`School year ${result.currentYear.year} started`, "success");
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not start the school year", "error"),
+    onError: (err, _vars, ctx) => {
+      restoreCaches(ctx?.prev);
+      showToast(err.response?.data?.error || "Could not start the school year", "error");
+    },
+    onSettled: () => invalidateAll(),
   });
 
   const endYearMutation = useMutation({
     mutationFn: endYear,
+    onMutate: async () => {
+      const prev = await snapshotCaches();
+      queryClient.setQueryData(["years"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          years: old.years.map((y) => (y.current || y.year === CURRENT_YEAR ? { ...y, ends: todayISO, current: false } : y)),
+          currentYear: null,
+          canStart: true,
+        };
+      });
+      queryClient.setQueryData(["terms"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          terms: old.currentTerm
+            ? old.terms.map((t) => (t.id === old.currentTerm.id ? { ...t, ends: todayISO, current: false } : t))
+            : old.terms,
+          currentTerm: null,
+          canStart: true,
+        };
+      });
+      return { prev };
+    },
     onSuccess: (result) => {
-      invalidateAll();
       showToast(`School year ended — ${result.archived} students archived`, "success");
       setConfirmEndYear(false);
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not end the school year", "error"),
+    onError: (err, _vars, ctx) => {
+      restoreCaches(ctx?.prev);
+      showToast(err.response?.data?.error || "Could not end the school year", "error");
+    },
+    onSettled: () => invalidateAll(),
   });
 
   const revertYearMutation = useMutation({
     mutationFn: () => revertYear(CURRENT_YEAR),
+    onMutate: async () => {
+      const prev = await snapshotCaches();
+      queryClient.setQueryData(["years"], (old) => {
+        if (!old) return old;
+        const closed = old.years.find((y) => y.year === CURRENT_YEAR);
+        const currentYear = closed
+          ? { ...closed, ends: null, current: true }
+          : { id: `temp-year-${Date.now()}`, year: CURRENT_YEAR, starts: todayISO, ends: null, current: true };
+        const years = closed
+          ? old.years.map((y) => (y.year === CURRENT_YEAR ? currentYear : y))
+          : [...old.years, currentYear];
+        return { ...old, years, currentYear, canStart: false };
+      });
+      return { prev };
+    },
     onSuccess: (result) => {
-      invalidateAll();
       showToast(`Year reopened — ${result.reverted} students restored`, "success");
       setConfirmRevertYear(false);
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not reopen the school year", "error"),
+    onError: (err, _vars, ctx) => {
+      restoreCaches(ctx?.prev);
+      showToast(err.response?.data?.error || "Could not reopen the school year", "error");
+    },
+    onSettled: () => invalidateAll(),
   });
 
   const currentTerm = data?.currentTerm;
@@ -259,7 +388,10 @@ export default function TermsScreen() {
               <Button
                 title="End term"
                 variant="danger"
-                onPress={() => endTermMutation.mutate()}
+                onPress={() => {
+                  setConfirmEndTerm(false);
+                  endTermMutation.mutate();
+                }}
                 loading={endTermMutation.isPending}
                 style={{ flex: 1 }}
               />
@@ -283,7 +415,10 @@ export default function TermsScreen() {
               <Button
                 title="End year"
                 variant="danger"
-                onPress={() => endYearMutation.mutate()}
+                onPress={() => {
+                  setConfirmEndYear(false);
+                  endYearMutation.mutate();
+                }}
                 loading={endYearMutation.isPending}
                 style={{ flex: 1 }}
               />
@@ -305,7 +440,10 @@ export default function TermsScreen() {
               <Button title="Cancel" variant="ghost" onPress={() => setConfirmRevertYear(false)} style={{ flex: 1 }} />
               <Button
                 title="Reopen year"
-                onPress={() => revertYearMutation.mutate()}
+                onPress={() => {
+                  setConfirmRevertYear(false);
+                  revertYearMutation.mutate();
+                }}
                 loading={revertYearMutation.isPending}
                 style={{ flex: 1 }}
               />

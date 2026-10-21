@@ -42,19 +42,49 @@ export default function RegisterSchoolScreen({ navigation }) {
 
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["all-schools"] });
-    queryClient.invalidateQueries({ queryKey: ["pending-schools"] });
-  };
-
   const saveMutation = useMutation({
     mutationFn: registerSchool,
-    onSuccess: () => {
-      invalidate();
-      showToast("School registered", "success");
-      navigation.goBack();
+    mutationKey: ["create-school"],
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ["all-schools"] });
+      await queryClient.cancelQueries({ queryKey: ["pending-schools"] });
+      const prevAll = queryClient.getQueryData(["all-schools"]);
+      const prevPending = queryClient.getQueryData(["pending-schools"]);
+      const temp = {
+        id: `temp-school-${Date.now()}`,
+        name: payload.name,
+        schoolType: payload.schoolType,
+        phone: payload.phone,
+        email: payload.email || null,
+        logoUrl: payload.logoUrl || null,
+        status: "PENDING",
+        headmasterName: payload.headmasterName,
+      };
+      queryClient.setQueryData(["pending-schools"], (old = []) => [temp, ...(old || [])]);
+      queryClient.setQueryData(["all-schools"], (old = []) => [temp, ...(old || [])]);
+      return { prevAll, prevPending, tempId: temp.id };
     },
-    onError: (err) => showToast(err.response?.data?.error || "Could not register the school", "error"),
+    onSuccess: (result, _vars, ctx) => {
+      const school = result?.school;
+      if (ctx?.tempId && school) {
+        queryClient.setQueryData(["pending-schools"], (old = []) =>
+          (old || []).map((s) => (s.id === ctx.tempId ? school : s))
+        );
+        queryClient.setQueryData(["all-schools"], (old = []) =>
+          (old || []).map((s) => (s.id === ctx.tempId ? school : s))
+        );
+      }
+      showToast("School registered", "success");
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prevPending !== undefined) queryClient.setQueryData(["pending-schools"], ctx.prevPending);
+      if (ctx?.prevAll !== undefined) queryClient.setQueryData(["all-schools"], ctx.prevAll);
+      showToast(err.response?.data?.error || "Could not register the school", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-schools"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-schools"] });
+    },
   });
 
   const onSave = () => {
@@ -111,6 +141,7 @@ export default function RegisterSchoolScreen({ navigation }) {
       headmasterPassword: form.headmasterPassword,
       headmasterPhone: trimmed(form.headmasterPhone) || undefined,
     });
+    navigation.goBack();
   };
 
   const pickLogo = () =>

@@ -35,6 +35,7 @@ export default function AddClassScreen({ navigation }) {
 
   const mutation = useMutation({
     mutationFn: createClass,
+    mutationKey: ["create-class"],
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: ["classes"] });
       const prev = queryClient.getQueryData(["classes"]);
@@ -51,16 +52,15 @@ export default function AddClassScreen({ navigation }) {
       return { prev };
     },
     onSuccess: (created, _vars, ctx) => {
-      if (ctx?.prev) {
+      if (ctx) {
         queryClient.setQueryData(["classes"], (old = []) =>
           (old || []).map((c) => (String(c.id).startsWith("temp-") ? created : c))
         );
       }
       showToast("Class created", "success");
-      navigation.goBack();
     },
     onError: (err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(["classes"], ctx.prev);
+      if (ctx?.prev !== undefined) queryClient.setQueryData(["classes"], ctx.prev);
       showToast(err.response?.data?.error || "Could not create class. Please try again.", "error");
     },
     onSettled: () => {
@@ -75,6 +75,7 @@ export default function AddClassScreen({ navigation }) {
       return;
     }
     mutation.mutate({ name, teacherId });
+    navigation.goBack();
   };
 
   return (
