@@ -1,19 +1,26 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, View, RefreshControl, TouchableOpacity } from "react-native";
 import Text from "../../components/LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Button from "../../components/Button";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
 import EmptyState from "../../components/EmptyState";
-import { fetchClasses } from "../../api/classes";
+import { deleteClass, fetchClasses } from "../../api/classes";
+import { useToast } from "../../context/ToastContext";
 import { colors, radius, spacing, typography } from "../../theme";
 
 export default function ClassesScreen({ navigation }) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const [confirmId, setConfirmId] = useState(null);
+  const confirmTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(confirmTimer.current), []);
+
   const { data: classes = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["classes"],
     queryFn: fetchClasses,
@@ -21,11 +28,49 @@ export default function ClassesScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      // A class is still being created — let the optimistic entry stand.
-      if (queryClient.isMutating({ mutationKey: ["create-class"] }) > 0) return;
+      // A class is still being created or deleted — let the optimistic list stand.
+      if (
+        queryClient.isMutating({ mutationKey: ["create-class"] }) > 0 ||
+        queryClient.isMutating({ mutationKey: ["delete-class"] }) > 0
+      )
+        return;
       refetch();
     }, [refetch, queryClient])
   );
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteClass,
+    mutationKey: ["delete-class"],
+    onMutate: async (classId) => {
+      await queryClient.cancelQueries({ queryKey: ["classes"] });
+      const prev = queryClient.getQueryData(["classes"]);
+      queryClient.setQueryData(["classes"], (old = []) => (old || []).filter((c) => c.id !== classId));
+      return { prev };
+    },
+    onSuccess: () => showToast("Class deleted", "success"),
+    onError: (err, _classId, ctx) => {
+      if (ctx?.prev !== undefined) queryClient.setQueryData(["classes"], ctx.prev);
+      showToast(err.response?.data?.error || "Could not delete the class", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+
+  const onDelete = (klass) => {
+    if (deleteMutation.isPending) return;
+    if (confirmId !== klass.id) {
+      setConfirmId(klass.id);
+      showToast(`Tap Delete again to remove ${klass.name}`, "info");
+      clearTimeout(confirmTimer.current);
+      confirmTimer.current = setTimeout(() => setConfirmId(null), 4000);
+      return;
+    }
+    clearTimeout(confirmTimer.current);
+    setConfirmId(null);
+    deleteMutation.mutate(klass.id);
+  };
 
   return (
     <Screen scroll={false}>
@@ -85,6 +130,18 @@ export default function ClassesScreen({ navigation }) {
                   <Ionicons name="swap-horizontal-outline" size={13} color={colors.primary} />
                   <Text style={styles.assignText}>{item.teacher ? "Change" : "Assign"}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => onDelete(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  disabled={deleteMutation.isPending}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={confirmId === item.id ? "trash" : "trash-outline"} size={13} color={colors.danger} />
+                  <Text style={[styles.deleteText, confirmId === item.id && styles.deleteTextActive]}>
+                    {confirmId === item.id ? "Tap again" : "Delete"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </Card>
@@ -112,4 +169,7 @@ const styles = StyleSheet.create({
   countCol: { alignItems: "flex-end", gap: spacing(1.5) },
   assignBtn: { flexDirection: "row", alignItems: "center", gap: spacing(1), marginTop: spacing(0.5) },
   assignText: { fontSize: 12, fontWeight: "700", color: colors.primary },
+  deleteBtn: { flexDirection: "row", alignItems: "center", gap: spacing(1), marginTop: spacing(0.5) },
+  deleteText: { fontSize: 12, fontWeight: "700", color: colors.danger },
+  deleteTextActive: { textDecorationLine: "underline" },
 });

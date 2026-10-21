@@ -1,9 +1,9 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FlatList, StyleSheet, View, RefreshControl } from "react-native";
 import Text from "../../components/LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Button from "../../components/Button";
@@ -11,11 +11,18 @@ import Card from "../../components/Card";
 import Badge from "../../components/Badge";
 import EmptyState from "../../components/EmptyState";
 import Avatar from "../../components/Avatar";
-import { fetchTeachers } from "../../api/teachers";
+import { deleteTeacher, fetchTeachers } from "../../api/teachers";
+import { useToast } from "../../context/ToastContext";
 import { colors, radius, spacing, typography } from "../../theme";
 
 export default function TeachersScreen({ navigation }) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const [confirmId, setConfirmId] = useState(null);
+  const confirmTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(confirmTimer.current), []);
+
   const { data: teachers = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["teachers"],
     queryFn: fetchTeachers,
@@ -24,11 +31,49 @@ export default function TeachersScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      // A teacher is still being registered — let the optimistic entry stand.
-      if (queryClient.isMutating({ mutationKey: ["create-teacher"] }) > 0) return;
+      // A teacher is still being registered or deleted — let the optimistic list stand.
+      if (
+        queryClient.isMutating({ mutationKey: ["create-teacher"] }) > 0 ||
+        queryClient.isMutating({ mutationKey: ["delete-teacher"] }) > 0
+      )
+        return;
       refetch();
     }, [refetch, queryClient])
   );
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTeacher,
+    mutationKey: ["delete-teacher"],
+    onMutate: async (teacherId) => {
+      await queryClient.cancelQueries({ queryKey: ["teachers"] });
+      const prev = queryClient.getQueryData(["teachers"]);
+      queryClient.setQueryData(["teachers"], (old = []) => (old || []).filter((t) => t.id !== teacherId));
+      return { prev };
+    },
+    onSuccess: () => showToast("Teacher deleted", "success"),
+    onError: (err, _teacherId, ctx) => {
+      if (ctx?.prev !== undefined) queryClient.setQueryData(["teachers"], ctx.prev);
+      showToast(err.response?.data?.error || "Could not delete the teacher", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
+  });
+
+  const onDelete = (teacher) => {
+    if (deleteMutation.isPending) return;
+    if (confirmId !== teacher.id) {
+      setConfirmId(teacher.id);
+      showToast(`Tap Delete again to remove ${teacher.name}`, "info");
+      clearTimeout(confirmTimer.current);
+      confirmTimer.current = setTimeout(() => setConfirmId(null), 4000);
+      return;
+    }
+    clearTimeout(confirmTimer.current);
+    setConfirmId(null);
+    deleteMutation.mutate(teacher.id);
+  };
 
   return (
     <Screen scroll={false}>
@@ -88,6 +133,18 @@ export default function TeachersScreen({ navigation }) {
                   <Ionicons name="swap-horizontal-outline" size={13} color={colors.primary} />
                   <Text style={styles.assignText}>{(item.classTeacherOf ?? []).length > 0 ? "Manage classes" : "Assign"}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  onPress={() => onDelete(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  disabled={deleteMutation.isPending}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={confirmId === item.id ? "trash" : "trash-outline"} size={13} color={colors.danger} />
+                  <Text style={[styles.deleteText, confirmId === item.id && styles.deleteTextActive]}>
+                    {confirmId === item.id ? "Tap again" : "Delete"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </Card>
@@ -107,4 +164,7 @@ const styles = StyleSheet.create({
   rightCol: { alignItems: "flex-end", gap: spacing(1.5) },
   assignBtn: { flexDirection: "row", alignItems: "center", gap: spacing(1), marginTop: spacing(0.5) },
   assignText: { fontSize: 12, fontWeight: "700", color: colors.primary },
+  deleteBtn: { flexDirection: "row", alignItems: "center", gap: spacing(1), marginTop: spacing(0.5) },
+  deleteText: { fontSize: 12, fontWeight: "700", color: colors.danger },
+  deleteTextActive: { textDecorationLine: "underline" },
 });
