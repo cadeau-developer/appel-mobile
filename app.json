@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Attendance",
+    "slug": "cahier-d-appel",
+    "version": "1.0.0",
+    "scheme": "attendance",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "icon": "./assets/logo.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563EB"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.attendance.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.attendance.app",
+      "versionCode": 7,
+      "edgeToEdgeEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#2563EB"
+      }
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#1E40AF",
+      "barStyle": "light-content",
+      "translucent": false
+    },
+    "web": {
+      "bundler": "metro",
+      "name": "Attendance",
+      "shortName": "Attendance",
+      "themeColor": "#2563EB",
+      "backgroundColor": "#E8F2FF",
+      "favicon": "./assets/logo.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Attendance to use your camera to take profile and student photos.",
+          "photosPermission": "Allow Attendance to access your photos for profiles, students and school logos.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "93f070d0-30ae-4330-986f-271c41e152da"
+      }
+    },
+    "owner": "cadeauagaind"
+  }
+}
