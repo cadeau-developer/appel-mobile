@@ -9,12 +9,13 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 import Badge from "../../components/Badge";
 import LocationPicker from "../../components/LocationPicker";
+import Select from "../../components/Select";
+import { SCHOOL_TYPES } from "../../constants/schoolTypes";
 import { deleteSchool, updateSchool } from "../../api/admin";
 import { useToast } from "../../context/ToastContext";
 import { isRwPhone, PHONE_ERROR } from "../../utils/phone";
 import { colors, radius, spacing, typography } from "../../theme";
 
-const SCHOOL_TYPES = ["Primary", "Secondary", "College", "Other"];
 const STATUSES = [
   { key: "APPROVED", label: "Approved", icon: "checkmark-circle", color: colors.success, bg: colors.successLight },
   { key: "PENDING", label: "Pending", icon: "time-outline", color: colors.accent, bg: colors.accentLight },
@@ -30,7 +31,7 @@ export default function SchoolManagementScreen({ route, navigation }) {
 
   const [form, setForm] = useState({
     name: school.name || "",
-    schoolType: school.schoolType || SCHOOL_TYPES[0],
+    schoolType: school.schoolType || "",
     phone: school.phone || "",
     email: school.email || "",
     headmasterName: headmaster.name || "",
@@ -169,18 +170,14 @@ export default function SchoolManagementScreen({ route, navigation }) {
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>School</Text>
         <Input label="School name" icon="school-outline" value={form.name} onChangeText={set("name")} placeholder="e.g. G.S. Nyagatare" />
-        <Text style={styles.fieldLabel}>School type</Text>
-        <View style={styles.chips}>
-          {SCHOOL_TYPES.map((t) => (
-            <TouchableOpacity
-              key={t}
-              onPress={() => set("schoolType")(t)}
-              style={[styles.chip, form.schoolType === t && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, form.schoolType === t && styles.chipTextActive]}>{t}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Select
+          label="School type"
+          icon="business-outline"
+          value={form.schoolType}
+          onChange={set("schoolType")}
+          options={SCHOOL_TYPES}
+          placeholder="Select school type"
+        />
         <Input label="School phone" icon="call-outline" value={form.phone} onChangeText={(t) => set("phone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" keyboardType="phone-pad" />
         <Input label="School email" icon="mail-outline" value={form.email} onChangeText={set("email")} placeholder="info@school.rw" keyboardType="email-address" autoCapitalize="none" />
         <LocationPicker
@@ -252,19 +249,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: spacing(3),
   },
-  fieldLabel: { fontWeight: "600", fontSize: 14, color: colors.text, marginBottom: spacing(1.5) },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing(2), marginBottom: spacing(3.5) },
-  chip: {
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3.5),
-    borderRadius: radius.round,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  chipText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-  chipTextActive: { color: colors.primary },
   hint: { fontSize: 13, color: colors.textMuted, marginBottom: spacing(3) },
   saveBtn: { marginBottom: spacing(4) },
   dangerCard: { borderColor: colors.dangerLight, backgroundColor: "rgba(255,107,107,0.08)" },

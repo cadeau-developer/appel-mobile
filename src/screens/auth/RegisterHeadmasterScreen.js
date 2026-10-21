@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 import Text from "../../components/LocalizedText";
 import Screen from "../../components/Screen";
 import Input from "../../components/Input";
@@ -7,13 +7,13 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 import BrandHeader from "../../components/BrandHeader";
 import LocationPicker from "../../components/LocationPicker";
+import Select from "../../components/Select";
+import { SCHOOL_TYPES } from "../../constants/schoolTypes";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { isRwPhone, PHONE_ERROR } from "../../utils/phone";
 import { colors, radius, spacing } from "../../theme";
 import logoAsset from "../../../assets/logo.png";
-
-const SCHOOL_TYPES = ["Primary", "Secondary", "Primary & Secondary", "Technical", "Other"];
 
 export default function RegisterHeadmasterScreen({ navigation }) {
   const { registerHeadmaster } = useAuth();
@@ -80,21 +80,14 @@ export default function RegisterHeadmasterScreen({ navigation }) {
         <SectionTitle icon="school-outline" label="School information" />
         <Input label="School name *" icon="business-outline" value={form.schoolName} onChangeText={update("schoolName")} />
 
-        <Text style={styles.fieldLabel}>School type</Text>
-        <View style={styles.chips}>
-          {SCHOOL_TYPES.map((t) => {
-            const selected = form.schoolType === t;
-            return (
-              <TouchableOpacity
-                key={t}
-                onPress={() => update("schoolType")(selected ? "" : t)}
-                style={[styles.chip, selected && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{t}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <Select
+          label="School type"
+          icon="business-outline"
+          value={form.schoolType}
+          onChange={update("schoolType")}
+          options={SCHOOL_TYPES}
+          placeholder="Select school type"
+        />
 
         <LocationPicker
           value={location}
@@ -169,17 +162,4 @@ const styles = StyleSheet.create({
   },
   sectionIconText: { color: colors.primary, fontWeight: "900", fontSize: 15 },
   sectionTitleLabel: { fontSize: 15, fontWeight: "800", color: colors.text },
-  fieldLabel: { fontWeight: "600", color: colors.text, fontSize: 14, marginBottom: spacing(1.5) },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing(2), marginBottom: spacing(3.5) },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radius.round,
-    paddingHorizontal: spacing(3),
-    paddingVertical: spacing(1.5),
-  },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
-  chipTextSelected: { color: "#fff" },
 });

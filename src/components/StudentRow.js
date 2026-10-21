@@ -1,20 +1,14 @@
 import React from "react";
-import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Text from "./LocalizedText";
 import { Ionicons } from "@expo/vector-icons";
-import { ABSENCE_REASONS, OTHER_REASON } from "../constants/absenceReasons";
+import { ABSENCE_REASONS } from "../constants/absenceReasons";
 import Avatar from "./Avatar";
 import { colors, radius, spacing } from "../theme";
 
 export default function StudentRow({ student, unavailable, reason, onToggle, onReasonChange, disabled }) {
   const isCustom = unavailable && !!reason && !ABSENCE_REASONS.includes(reason);
-  const selectedChip = unavailable
-    ? isCustom
-      ? OTHER_REASON
-      : reason || ""
-    : "";
-
-  const chips = [...ABSENCE_REASONS, OTHER_REASON];
+  const selectedChip = unavailable && !isCustom ? reason || "" : "";
 
   return (
     <View style={[styles.row, unavailable && styles.rowUnavailable]}>
@@ -45,7 +39,7 @@ export default function StudentRow({ student, unavailable, reason, onToggle, onR
         <View style={styles.reasonWrap}>
           <Text style={styles.reasonLabel}>Reason</Text>
           <View style={styles.chips}>
-            {chips.map((label) => {
+            {ABSENCE_REASONS.map((label) => {
               const active = selectedChip === label;
               return (
                 <TouchableOpacity
@@ -59,17 +53,12 @@ export default function StudentRow({ student, unavailable, reason, onToggle, onR
                 </TouchableOpacity>
               );
             })}
+            {isCustom ? (
+              <View style={[styles.chip, styles.chipActive, styles.chipCustom]}>
+                <Text style={[styles.chipText, styles.chipTextActive]}>{reason}</Text>
+              </View>
+            ) : null}
           </View>
-          {selectedChip === OTHER_REASON ? (
-            <TextInput
-              style={styles.reasonInput}
-              placeholder="Describe the reason…"
-              placeholderTextColor={colors.textLight}
-              value={isCustom ? reason : ""}
-              onChangeText={onReasonChange}
-              editable={!disabled}
-            />
-          ) : null}
         </View>
       ) : null}
     </View>
@@ -119,17 +108,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chipActive: { backgroundColor: colors.danger, borderColor: colors.danger },
+  chipCustom: { opacity: 0.75 },
   chipText: { fontSize: 12, fontWeight: "600", color: colors.textMuted },
   chipTextActive: { color: "#fff", fontWeight: "700" },
-  reasonInput: {
-    marginTop: spacing(2),
-    borderWidth: 1,
-    borderColor: colors.dangerLight,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing(3),
-    paddingVertical: spacing(2.5),
-    fontSize: 14,
-    color: colors.text,
-    backgroundColor: colors.surfaceMuted,
-  },
 });

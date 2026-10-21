@@ -9,23 +9,13 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 import Avatar from "../../components/Avatar";
 import LocationPicker from "../../components/LocationPicker";
+import Select from "../../components/Select";
+import { SCHOOL_TYPES } from "../../constants/schoolTypes";
 import { registerSchool } from "../../api/admin";
 import { useToast } from "../../context/ToastContext";
 import { pickImageFile } from "../../utils/pickImage";
 import { isRwPhone, PHONE_ERROR } from "../../utils/phone";
 import { colors, radius, spacing, typography } from "../../theme";
-
-const SCHOOL_TYPES = [
-  "Nursery",
-  "Nursery & Primary",
-  "Nursery & Primary & Secondary",
-  "Nursery & Primary & Secondary & TSS",
-  "Primary",
-  "Primary & Secondary",
-  "Primary & Secondary & TSS",
-  "Secondary",
-  "TSS",
-];
 
 export default function RegisterSchoolScreen({ navigation }) {
   const { showToast } = useToast();
@@ -33,7 +23,7 @@ export default function RegisterSchoolScreen({ navigation }) {
 
   const [form, setForm] = useState({
     name: "",
-    schoolType: "Primary",
+    schoolType: "",
     phone: "",
     email: "",
     logoUrl: "",
@@ -171,18 +161,14 @@ export default function RegisterSchoolScreen({ navigation }) {
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>School</Text>
         <Input label="School name *" icon="school-outline" value={form.name} onChangeText={set("name")} placeholder="e.g. G.S. Nyagatare" />
-        <Text style={styles.fieldLabel}>School type</Text>
-        <View style={styles.chips}>
-          {SCHOOL_TYPES.map((t) => (
-            <TouchableOpacity
-              key={t}
-              onPress={() => set("schoolType")(t)}
-              style={[styles.chip, form.schoolType === t && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, form.schoolType === t && styles.chipTextActive]}>{t}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Select
+          label="School type"
+          icon="business-outline"
+          value={form.schoolType}
+          onChange={set("schoolType")}
+          options={SCHOOL_TYPES}
+          placeholder="Select school type"
+        />
         <LocationPicker
           value={location}
           onChange={setLocation}
@@ -233,19 +219,6 @@ const styles = StyleSheet.create({
   logoBtnText: { color: colors.primary, fontWeight: "700", fontSize: 13 },
   card: { marginBottom: spacing(4) },
   sectionTitle: { fontWeight: "800", fontSize: 16, color: colors.primary, marginBottom: spacing(3) },
-  fieldLabel: { fontWeight: "600", fontSize: 14, color: colors.text, marginBottom: spacing(1.5) },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing(2), marginBottom: spacing(3.5) },
-  chip: {
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3.5),
-    borderRadius: radius.round,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  chipActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  chipText: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
-  chipTextActive: { color: colors.primary },
   hint: { fontSize: 13, color: colors.textMuted, marginBottom: spacing(3) },
   saveBtn: { marginBottom: spacing(6) },
 });

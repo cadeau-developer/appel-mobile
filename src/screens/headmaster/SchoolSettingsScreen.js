@@ -9,6 +9,8 @@ import Button from "../../components/Button";
 import Card from "../../components/Card";
 import Avatar from "../../components/Avatar";
 import LocationPicker from "../../components/LocationPicker";
+import Select from "../../components/Select";
+import { SCHOOL_TYPES } from "../../constants/schoolTypes";
 import { updateSchool } from "../../api/schools";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -94,7 +96,14 @@ export default function SchoolSettingsScreen({ navigation }) {
           The logo appears on the headmaster dashboard so the app feels like yours.
         </Text>
         <Input label="School name" icon="school-outline" value={form.name} onChangeText={set("name")} placeholder="e.g. G.S. Kigali" />
-        <Input label="School type (optional)" icon="business-outline" value={form.schoolType} onChangeText={set("schoolType")} placeholder="e.g. Primary, Secondary" />
+        <Select
+          label="School type (optional)"
+          icon="business-outline"
+          value={form.schoolType}
+          onChange={set("schoolType")}
+          options={SCHOOL_TYPES}
+          placeholder="Select school type"
+        />
         <LocationPicker
           value={location}
           onChange={setLocation}
