@@ -18,12 +18,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cahierdappel.app",
+      "bundleIdentifier": "com.cahierdappel.mobile",
       "buildNumber": "1"
     },
     "android": {
-      "package": "com.cahierdappel.app",
-      "versionCode": 9,
+      "package": "com.cahierdappel.mobile",
+      "versionCode": 11,
       "edgeToEdgeEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
