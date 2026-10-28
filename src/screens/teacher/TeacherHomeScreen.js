@@ -24,12 +24,11 @@ export default function TeacherHomeScreen({ navigation }) {
     retry: false,
   });
 
-  const genderEntries = data ? Object.entries(data.genderCounts) : [];
-  const absenceRanking = data
-    ? data.students
-        .filter((s) => s.absentDays > 0)
-        .sort((a, b) => b.absentDays - a.absentDays || b.absenceRate - a.absenceRate)
-    : [];
+  const genderCounts = data?.genderCounts || {};
+  const genderEntries = Object.entries(genderCounts).filter(([, count]) => count !== null && count !== undefined);
+  const absenceRanking = (data?.students || [])
+    .filter((s) => s.absentDays > 0)
+    .sort((a, b) => b.absentDays - a.absentDays || b.absenceRate - a.absenceRate);
   const lowDiscipline = data?.lowDiscipline || [];
 
   return (
@@ -39,7 +38,7 @@ export default function TeacherHomeScreen({ navigation }) {
         showAppBrand={false}
         title={data?.class?.name || "My class"}
         subtitle={
-          data
+          data?.class
             ? `${user?.school?.name ? user.school.name + " · " : ""}${data.totalStudents} student${data.totalStudents === 1 ? "" : "s"} · ${formatFullDate(todayISO())}${schoolYear ? ` · Year ${schoolYear}` : ""}`
             : "Loading…"
         }
@@ -59,7 +58,7 @@ export default function TeacherHomeScreen({ navigation }) {
           <View style={styles.center}>
             <Text style={styles.loadingText}>Loading…</Text>
           </View>
-        ) : data ? (
+        ) : data?.class ? (
           <>
             <View style={styles.grid}>
               <View style={[styles.statCard, { backgroundColor: colors.primaryLight }]}>

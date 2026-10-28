@@ -88,7 +88,7 @@ export default function TakeAttendanceScreen({ route }) {
       showToast(
         submitted
           ? `Attendance for ${formatFullDate(date)} has been updated.`
-          : `${unavailableCount} student${unavailableCount === 1 ? "" : "s"} marked unavailable on ${formatFullDate(date)}. The rest are available.`,
+          : `${unavailableCount} student${unavailableCount === 1 ? "" : "s"} marked absent on ${formatFullDate(date)}. The rest are present.`,
         "success"
       );
     },
@@ -113,8 +113,8 @@ export default function TakeAttendanceScreen({ route }) {
   const offDay = offDayStatus?.isOffDay ? offDayStatus.offDay : null;
   const submitted =
     existing?.submitted ?? (students.length > 0 && (existing?.attendance?.length ?? 0) >= students.length);
-  const canEdit = existing?.canEdit ?? true;
-  const locked = submitted && (!canEdit || !editing);
+  const canEdit = existing?.canEdit ?? false;
+  const locked = submitted && !editing;
   const futureDay = date > todayISO();
 
   return (
@@ -140,7 +140,7 @@ export default function TakeAttendanceScreen({ route }) {
                   </TouchableOpacity>
                 ) : null}
                 <Text style={styles.dateTitle}>{formatFullDate(date)}</Text>
-                <Text style={styles.dateHint}>Everyone is available by default — tap to mark unavailable</Text>
+                <Text style={styles.dateHint}>Everyone is present by default — tap to mark absent</Text>
               </View>
               <TouchableOpacity
                 style={styles.navBtn}
@@ -168,9 +168,9 @@ export default function TakeAttendanceScreen({ route }) {
                   color={colors.success}
                 />
                 <Text style={styles.doneText}>
-                  {canEdit
-                    ? `Attendance for ${formatFullDate(date)} has been submitted. You can update it once if needed.`
-                    : `Attendance for ${formatFullDate(date)} was updated and can no longer be changed.`}
+                {canEdit
+                  ? `Attendance for ${formatFullDate(date)} has been submitted.`
+                  : `Attendance for ${formatFullDate(date)} has been submitted and cannot be updated.`}
                 </Text>
               </View>
             ) : null}
@@ -179,12 +179,12 @@ export default function TakeAttendanceScreen({ route }) {
               <View style={[styles.summaryItem, styles.summaryAvailable]}>
                 <Ionicons name="checkmark-circle" size={18} color={colors.success} />
                 <Text style={styles.summaryValue}>{availableCount}</Text>
-                <Text style={styles.summaryLabel}>Available</Text>
+                <Text style={styles.summaryLabel}>Present</Text>
               </View>
               <View style={[styles.summaryItem, styles.summaryUnavailable]}>
                 <Ionicons name="close-circle" size={18} color={colors.danger} />
                 <Text style={styles.summaryValue}>{unavailableCount}</Text>
-                <Text style={styles.summaryLabel}>Unavailable</Text>
+                <Text style={styles.summaryLabel}>Absent</Text>
               </View>
               <View style={[styles.summaryItem, styles.summaryTotal]}>
                 <Ionicons name="people-outline" size={18} color={colors.primary} />
@@ -249,7 +249,7 @@ export default function TakeAttendanceScreen({ route }) {
               : () => setEditing(true)
           }
           loading={mutation.isPending}
-          disabled={!!offDay || futureDay || (submitted && !canEdit)}
+              disabled={!!offDay || futureDay || submitted}
         />
       </View>
     </Screen>

@@ -32,7 +32,7 @@ export default function TodayAttendanceScreen({ navigation }) {
   const presentCount = attendance.filter((a) => a.status === "PRESENT").length;
   const absentCount = attendance.filter((a) => a.status === "UNAVAILABLE").length;
   const isComplete = attData?.submitted ?? (attendance.length > 0 && attendance.length >= totalStudents);
-  const canEdit = attData?.canEdit ?? true;
+  const canEdit = attData?.canEdit ?? false;
 
   return (
     <Screen stickyHeader>
@@ -91,12 +91,12 @@ export default function TodayAttendanceScreen({ navigation }) {
               </View>
               <Text style={styles.bannerTitle}>Attendance completed!</Text>
               <Text style={styles.bannerSubtitle}>
-                {presentCount} present, {absentCount} unavailable — recorded for {formatFullDate(date)}.
+                {presentCount} present, {absentCount} absent — recorded for {formatFullDate(date)}.
               </Text>
               <Text style={styles.bannerNote}>
                 {canEdit
-                  ? "You can still update it once if something changes."
-                  : "This attendance was updated and can no longer be changed."}
+                  ? "Attendance has been submitted."
+                  : "This attendance has been submitted and cannot be updated."}
               </Text>
               {canEdit ? (
                 <TouchableOpacity

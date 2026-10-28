@@ -27,6 +27,10 @@ export default function RegisterSchoolScreen({ navigation }) {
     phone: "",
     email: "",
     logoUrl: "",
+    headmasterName: "",
+    headmasterPhone: "",
+    headmasterPassword: "",
+    confirmPassword: "",
   });
   const [location, setLocation] = useState({});
 
@@ -47,8 +51,9 @@ export default function RegisterSchoolScreen({ navigation }) {
         phone: payload.phone,
         email: payload.email || null,
         logoUrl: payload.logoUrl || null,
+        headmasterName: payload.headmasterName || null,
+        headmasterPhone: payload.headmasterPhone || null,
         status: "PENDING",
-        headmasterName: payload.headmasterName,
       };
       queryClient.setQueryData(["pending-schools"], (old = []) => [temp, ...(old || [])]);
       queryClient.setQueryData(["all-schools"], (old = []) => [temp, ...(old || [])]);
@@ -91,35 +96,35 @@ export default function RegisterSchoolScreen({ navigation }) {
       showToast(PHONE_ERROR, "error");
       return;
     }
+    if (!trimmed(form.email)) {
+      showToast("School email is required because the headmaster signs in with it", "error");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(trimmed(form.email))) {
+      showToast("Enter a valid school email", "error");
+      return;
+    }
     if (!trimmed(form.headmasterName)) {
       showToast("Headmaster full name is required", "error");
       return;
     }
-    if (!trimmed(form.headmasterEmail)) {
-      showToast("Headmaster email is required", "error");
-      return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(trimmed(form.headmasterEmail))) {
-      showToast("Enter a valid headmaster email", "error");
-      return;
-    }
-    if (!trimmed(form.headmasterPassword)) {
-      showToast("Headmaster password is required", "error");
+    if (trimmed(form.headmasterPhone) && !isRwPhone(trimmed(form.headmasterPhone))) {
+      showToast(PHONE_ERROR, "error");
       return;
     }
     if (form.headmasterPassword.length < 6) {
       showToast("Headmaster password must be at least 6 characters", "error");
       return;
     }
-    if (trimmed(form.email) && !/^\S+@\S+\.\S+$/.test(trimmed(form.email))) {
-      showToast("Enter a valid school email", "error");
+    if (form.headmasterPassword !== form.confirmPassword) {
+      showToast("Passwords do not match", "error");
       return;
     }
     saveMutation.mutate({
       name: trimmed(form.name),
       schoolType: form.schoolType,
       phone: trimmed(form.phone),
-      email: trimmed(form.email) || null,
+      email: trimmed(form.email),
       logoUrl: form.logoUrl || undefined,
       province: location.province || null,
       district: location.district || null,
@@ -127,9 +132,9 @@ export default function RegisterSchoolScreen({ navigation }) {
       cell: location.cell || null,
       village: location.village || null,
       headmasterName: trimmed(form.headmasterName),
-      headmasterEmail: trimmed(form.headmasterEmail).toLowerCase(),
+      headmasterPhone: trimmed(form.headmasterPhone) || null,
       headmasterPassword: form.headmasterPassword,
-      headmasterPhone: trimmed(form.headmasterPhone) || undefined,
+      status: "PENDING",
     });
     navigation.goBack();
   };
@@ -175,11 +180,12 @@ export default function RegisterSchoolScreen({ navigation }) {
           fields={["province", "district", "sector", "cell", "village"]}
         />
         <Input label="School phone *" icon="call-outline" value={form.phone} onChangeText={(t) => set("phone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" keyboardType="phone-pad" />
-        <Input label="School email (optional)" icon="mail-outline" value={form.email} onChangeText={set("email")} placeholder="info@school.rw" keyboardType="email-address" autoCapitalize="none" />
+        <Input label="School email (used for login) *" icon="mail-outline" value={form.email} onChangeText={set("email")} placeholder="info@school.rw" keyboardType="email-address" autoCapitalize="none" />
         <Input label="Headmaster full name *" icon="person-circle-outline" value={form.headmasterName} onChangeText={set("headmasterName")} placeholder="e.g. Mukamana Jeanne" />
-        <Input label="Headmaster email *" icon="mail-outline" value={form.headmasterEmail} onChangeText={set("headmasterEmail")} placeholder="head@school.rw" keyboardType="email-address" autoCapitalize="none" />
-        <Input label="Headmaster phone (optional)" icon="call-outline" value={form.headmasterPhone} onChangeText={(t) => set("headmasterPhone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" keyboardType="phone-pad" />
-        <Input label="Headmaster password *" icon="lock-closed-outline" value={form.headmasterPassword} onChangeText={set("headmasterPassword")} placeholder="At least 6 characters" secureTextEntry autoCapitalize="none" />
+        <Input label="Headmaster phone (optional)" icon="call-outline" value={form.headmasterPhone} onChangeText={(t) => set("headmasterPhone")(t.replace(/[^0-9]/g, ""))} placeholder="078. / 079. / 072. / 073." keyboardType="phone-pad" />
+        <Input label="Headmaster password *" icon="lock-closed-outline" value={form.headmasterPassword} onChangeText={set("headmasterPassword")} secureTextEntry autoCapitalize="none" placeholder="At least 6 characters" />
+        <Input label="Confirm headmaster password *" icon="lock-closed-outline" value={form.confirmPassword} onChangeText={set("confirmPassword")} secureTextEntry autoCapitalize="none" placeholder="Repeat the password" />
+        <Text style={styles.hint}>The headmaster signs in with the school email and this password.</Text>
       </Card>
 
       <Button title="Register school" icon="school-outline" onPress={onSave} loading={saveMutation.isPending} style={styles.saveBtn} />

@@ -21,6 +21,15 @@ function toISO(d) {
   return `${y}-${m}-${day}`;
 }
 
+// Accepts both "YYYY-MM-DD" and full ISO timestamps (e.g. from the API).
+function parseDay(value) {
+  if (!value) return null;
+  const iso = value instanceof Date ? toISO(value) : String(value).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function todayISO() {
   return toISO(new Date());
 }
@@ -32,25 +41,25 @@ export function shiftDate(iso, days) {
 }
 
 export function formatFullDate(iso) {
-  if (!iso) return "";
-  const d = new Date(`${iso}T00:00:00`);
+  const d = parseDay(iso);
+  if (!d) return "";
   return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 export function formatWeekday(iso) {
-  if (!iso) return "";
-  const d = new Date(`${iso}T00:00:00`);
+  const d = parseDay(iso);
+  if (!d) return "";
   return DAYS[d.getDay()];
 }
 
 export function formatShortDate(iso) {
-  if (!iso) return "";
-  const d = new Date(`${iso}T00:00:00`);
+  const d = parseDay(iso);
+  if (!d) return "";
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`; // e.g. "5 Sep"
 }
 
 export function isToday(iso) {
-  return iso === todayISO();
+  return String(iso || "").slice(0, 10) === todayISO();
 }
 
 export function relativeLabel(iso) {

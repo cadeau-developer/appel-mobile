@@ -25,7 +25,6 @@ export default function RegisterHeadmasterScreen({ navigation }) {
     schoolEmail: "",
     name: "",
     phone: "",
-    email: "",
     password: "",
   });
   const [location, setLocation] = useState({});
@@ -34,20 +33,25 @@ export default function RegisterHeadmasterScreen({ navigation }) {
   const update = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
   const onSubmit = async () => {
-    const { schoolName, name, email, password, schoolPhone, phone } = form;
-    if (!schoolName || !name || !email || !password) {
-      showToast("School name, your name, email and password are required", "error");
+    const { schoolName, name, password, schoolPhone, phone, schoolEmail } = form;
+    if (!schoolName || !name || !password || !schoolEmail) {
+      showToast("School name, your name, school email and password are required", "error");
       return;
     }
     if ((schoolPhone && !isRwPhone(schoolPhone)) || (phone && !isRwPhone(phone))) {
       showToast(PHONE_ERROR, "error");
       return;
     }
+    if (!/^\S+@\S+\.\S+$/.test(schoolEmail.trim())) {
+      showToast("Enter a valid school email", "error");
+      return;
+    }
     setLoading(true);
     try {
       await registerHeadmaster({
         ...form,
-        schoolEmail: form.schoolEmail || undefined,
+        email: schoolEmail.trim().toLowerCase(),
+        schoolEmail: schoolEmail.trim().toLowerCase(),
         province: location.province || undefined,
         district: location.district || undefined,
         sector: location.sector || undefined,
@@ -62,7 +66,7 @@ export default function RegisterHeadmasterScreen({ navigation }) {
   };
 
   return (
-    <Screen style={{ backgroundColor: colors.background }}>
+    <Screen padded style={{ backgroundColor: colors.background }}>
       <BrandHeader
         compact
         style={{ marginHorizontal: -spacing(4) }}
@@ -96,7 +100,7 @@ export default function RegisterHeadmasterScreen({ navigation }) {
         />
         <Input label="School phone" icon="call-outline" keyboardType="phone-pad" value={form.schoolPhone} onChangeText={(t) => update("schoolPhone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" />
         <Input
-          label="School email"
+          label="School email (used for login) *"
           icon="mail-outline"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -107,16 +111,8 @@ export default function RegisterHeadmasterScreen({ navigation }) {
 
       <Card style={styles.cardGap}>
         <SectionTitle icon="person-circle-outline" label="Headmaster account" />
-        <Input label="Your full name *" icon="person-outline" value={form.name} onChangeText={update("name")} />
-        <Input label="Phone" icon="call-outline" keyboardType="phone-pad" value={form.phone} onChangeText={(t) => update("phone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" />
-        <Input
-          label="Email (login) *"
-          icon="mail-outline"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={form.email}
-          onChangeText={update("email")}
-        />
+        <Input label="Headmaster full name *" icon="person-outline" value={form.name} onChangeText={update("name")} placeholder="e.g. Mukamana Jeanne" />
+        <Input label="Headmaster phone" icon="call-outline" keyboardType="phone-pad" value={form.phone} onChangeText={(t) => update("phone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" />
         <Input
           label="Password *"
           icon="lock-closed-outline"

@@ -15,6 +15,8 @@ export default function PendingApprovalScreen() {
   const { showToast } = useToast();
   const [checking, setChecking] = useState(false);
   const school = user?.school;
+  const blocked = school?.status === "BLOCKED";
+  const rejected = school?.status === "REJECTED";
 
   const onCheck = async () => {
     setChecking(true);
@@ -22,6 +24,10 @@ export default function PendingApprovalScreen() {
       const me = await refreshMe();
       if (me.school?.status === "APPROVED") {
         showToast(`${school?.name} has been approved. Welcome!`, "success");
+      } else if (me.school?.status === "BLOCKED") {
+        showToast("Your school is blocked. Contact the super admin.", "error");
+      } else if (me.school?.status === "REJECTED") {
+        showToast("Your school registration was rejected.", "error");
       } else {
         showToast("Your school is still awaiting approval", "info");
       }
@@ -40,12 +46,21 @@ export default function PendingApprovalScreen() {
       />
       <View style={styles.hero}>
         <View style={styles.iconCircle}>
-          <Ionicons name="hourglass-outline" size={34} color={colors.accent} />
+          <Ionicons
+            name={blocked ? "lock-closed" : rejected ? "close-circle-outline" : "hourglass-outline"}
+            size={34}
+            color={blocked || rejected ? colors.danger : colors.accent}
+          />
         </View>
-        <Text style={styles.title}>Awaiting approval</Text>
+        <Text style={styles.title}>
+          {blocked ? "School blocked" : rejected ? "Registration rejected" : "Awaiting approval"}
+        </Text>
         <Text style={styles.tagline}>
-          Your school is being reviewed by a super admin. Once approved you'll be able to add
-          teachers, create classes and take attendance.
+          {blocked
+            ? "Access to this school has been blocked by the super admin. Contact them to restore access."
+            : rejected
+              ? "This school's registration was rejected. Contact the super admin for more information."
+              : "Your school is being reviewed by a super admin. Once approved you'll be able to add teachers, create classes and take attendance."}
         </Text>
       </View>
 
@@ -58,7 +73,7 @@ export default function PendingApprovalScreen() {
             <Text style={styles.schoolName}>{school?.name}</Text>
             <Text style={styles.schoolMeta}>
               {school?.schoolType ? `${school.schoolType} · ` : ""}
-              Registration pending
+              {blocked ? "Blocked" : rejected ? "Rejected" : "Registration pending"}
             </Text>
           </View>
         </View>

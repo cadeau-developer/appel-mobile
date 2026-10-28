@@ -24,10 +24,13 @@ export default function OffDaysScreen() {
   const [label, setLabel] = useState("");
   const [confirmId, setConfirmId] = useState(null);
 
-  const { data: offDays = [], isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["off-days"],
     queryFn: fetchOffDays,
   });
+  const offDays = data?.offDays || [];
+  const weekendOffDays = data?.weekendOffDays || [];
+  const upcomingWeekends = weekendOffDays.filter((d) => d.date >= todayISO()).slice(0, 10);
 
   const addMutation = useMutation({
     mutationFn: addOffDay,
@@ -98,6 +101,34 @@ export default function OffDaysScreen() {
                 size="sm"
               />
             </Card>
+
+            <View style={styles.countRow}>
+              <Text style={styles.count}>Weekend off days (default)</Text>
+              <Badge tone="neutral" icon="moon-outline" label={`${weekendOffDays.length} this year`} />
+            </View>
+            <Text style={styles.helperText}>
+              Every Saturday and Sunday is an off day by default. Headmasters can open a specific weekend date
+              for attendance from their own dashboard.
+            </Text>
+            {upcomingWeekends.map((item) => (
+              <Card key={item.date} padded={false} style={styles.card}>
+                <View style={styles.cardBody}>
+                  <View style={[styles.calIcon, styles.weekendIcon]}>
+                    <Ionicons name="moon" size={16} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dateText}>{formatFullDate(item.date)}</Text>
+                    <Text style={styles.labelText}>{item.label}</Text>
+                  </View>
+                  <Badge tone="neutral" label="Off" />
+                </View>
+              </Card>
+            ))}
+            {weekendOffDays.length > upcomingWeekends.length ? (
+              <Text style={styles.helperText}>
+                +{weekendOffDays.length - upcomingWeekends.length} more weekend days this year
+              </Text>
+            ) : null}
 
             <View style={styles.countRow}>
               <Text style={styles.count}>
@@ -180,6 +211,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing(2.5),
   },
   count: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
+  helperText: { fontSize: 12, color: colors.textMuted, lineHeight: 18, marginBottom: spacing(2.5) },
   card: { marginBottom: spacing(2.5) },
   cardBody: { flexDirection: "row", alignItems: "center", gap: spacing(3), padding: spacing(3.5) },
   calIcon: {
@@ -190,6 +222,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  weekendIcon: { backgroundColor: colors.textMuted },
   dateText: { fontSize: 15, fontWeight: "700", color: colors.text },
   labelText: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   deleteBtn: {

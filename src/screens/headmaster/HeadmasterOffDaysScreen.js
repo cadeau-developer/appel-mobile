@@ -40,6 +40,8 @@ export default function HeadmasterOffDaysScreen({ navigation }) {
   });
   const offDays = data?.offDays || [];
   const autoOffDays = data?.autoOffDays || [];
+  const weekendOffDays = data?.weekendOffDays || [];
+  const upcomingWeekends = weekendOffDays.filter((d) => d.date >= todayISO()).slice(0, 10);
 
   const { data: weekendAttendanceDays = [], refetch: refetchWeekendDays } = useQuery({
     queryKey: ["weekend-attendance-days"],
@@ -221,6 +223,34 @@ export default function HeadmasterOffDaysScreen({ navigation }) {
               );
             })}
 
+            <View style={styles.countRow}>
+              <Text style={styles.count}>Weekend off days (default)</Text>
+              <Badge tone="neutral" icon="moon-outline" label={`${weekendOffDays.length} this year`} />
+            </View>
+            <Text style={styles.helperText}>
+              Every Saturday and Sunday is closed by default. Open a specific weekend above if your school has
+              lessons that day.
+            </Text>
+            {upcomingWeekends.map((item) => (
+              <Card key={item.date} padded={false} style={styles.card}>
+                <View style={styles.cardBody}>
+                  <View style={[styles.calIcon, styles.weekendIcon]}>
+                    <Ionicons name="moon" size={16} color="#fff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.dateText}>{formatFullDate(item.date)}</Text>
+                    <Text style={styles.labelText}>{item.label}</Text>
+                  </View>
+                  <Badge tone="neutral" label="Off" />
+                </View>
+              </Card>
+            ))}
+            {weekendOffDays.length > upcomingWeekends.length ? (
+              <Text style={styles.helperText}>
+                +{weekendOffDays.length - upcomingWeekends.length} more weekend days this year
+              </Text>
+            ) : null}
+
             {autoOffDays.length > 0 ? (
               <>
                 <View style={styles.countRow}>
@@ -350,6 +380,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   openIcon: { backgroundColor: colors.success },
+  weekendIcon: { backgroundColor: colors.textMuted },
   dateText: { fontSize: 15, fontWeight: "700", color: colors.text },
   labelText: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   deleteBtn: {

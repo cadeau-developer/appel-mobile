@@ -17,8 +17,8 @@ import { colors } from "./src/theme";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,
-      gcTime: 2 * 60 * 1000,
+      staleTime: 0,
+      gcTime: 60 * 1000,
       retry: 1,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
@@ -39,6 +39,9 @@ function WebChrome() {
       *::-webkit-scrollbar { width: 0; height: 0; display: none; }
       html, body, #root { margin: 0; padding: 0; height: 100%; background-color: #E8F2FF; }
       #root { display: flex; flex-direction: column; }
+      [role="tab"] { border-radius: 16px; transition: background-color 120ms ease, color 120ms ease; }
+      [role="tab"]:hover, [role="tab"]:hover * { color: #FFFFFF !important; }
+      [role="tab"]:hover { background-color: #2563EB; }
     `;
     document.head.appendChild(style);
     return () => {
@@ -75,5 +78,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: colors.primary },
 });

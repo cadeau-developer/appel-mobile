@@ -38,7 +38,7 @@ export default function BrandHeader({
             <Image source={logoAsset} style={styles.brandLogo} resizeMode="contain" />
           </View>
           <Text style={[styles.brand, compact && styles.brandCompact, slim && styles.brandSlim]}>
-            Attendance
+            Appel
           </Text>
         </View>
       ) : null}

@@ -145,7 +145,7 @@ export default function HeadmasterNavigator() {
           if (focused === "DisciplineHome") return [styles.tabBar, tabBarStyle];
           return focused ? styles.hiddenTabBar : [styles.tabBar, tabBarStyle];
         })(),
-        tabBarLabel: () => <Text style={styles.label}>{tabTitles[route.name]}</Text>,
+        tabBarLabel: ({ color }) => <Text style={[styles.label, { color }]}>{tabTitles[route.name]}</Text>,
         tabBarActiveTintColor: colors.onPrimary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarActiveBackgroundColor: colors.primary,

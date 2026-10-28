@@ -86,7 +86,7 @@ export default function SuperAdminNavigator() {
           if (focused === "AllSchoolsList") return [styles.tabBar, tabBarStyle];
           return focused ? styles.hiddenTabBar : [styles.tabBar, tabBarStyle];
         })(),
-        tabBarLabel: () => <Text style={styles.label}>{tabTitles[route.name]}</Text>,
+        tabBarLabel: ({ color }) => <Text style={[styles.label, { color }]}>{tabTitles[route.name]}</Text>,
         tabBarActiveTintColor: colors.onPrimary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarActiveBackgroundColor: colors.primary,

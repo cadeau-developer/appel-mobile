@@ -7,7 +7,8 @@ export function useSchoolYear() {
   const { data } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
   return data?.schoolYear || null;
 }

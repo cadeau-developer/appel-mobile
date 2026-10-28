@@ -7,10 +7,8 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import Card from "../../components/Card";
 import BrandHeader from "../../components/BrandHeader";
-import Avatar from "../../components/Avatar";
 import { fetchAllSchools } from "../../api/admin";
 import { useSchoolYear } from "../../hooks/useSchoolYear";
-import { useAuth } from "../../context/AuthContext";
 import { colors, radius, spacing } from "../../theme";
 
 const SCHOOL_TYPES = ["Primary", "Secondary", "College", "Other"];
@@ -30,7 +28,6 @@ const CATEGORY_COLORS = {
 };
 
 export default function AdminHomeScreen() {
-  const { user, logout } = useAuth();
   const navigation = useNavigation();
   const schoolYear = useSchoolYear();
   const queryClient = useQueryClient();
@@ -42,10 +39,8 @@ export default function AdminHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      // A school is still being registered — let the optimistic entry stand.
-      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch, queryClient])
+    }, [refetch])
   );
 
   const approved = schools.filter((s) => s.status === "APPROVED").length;
@@ -74,16 +69,6 @@ export default function AdminHomeScreen() {
           schoolYear ? ` · Year ${schoolYear}` : ""
         }`}
         icon="home-outline"
-        right={
-          <>
-            <View style={styles.headerAvatar}>
-              <Avatar uri={user?.avatarUrl} name={user?.name} size={30} />
-            </View>
-            <TouchableOpacity onPress={logout} style={styles.iconBtn}>
-              <Ionicons name="log-out-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-          </>
-        }
       />
       <FlatList
         contentContainerStyle={styles.list}
@@ -171,22 +156,6 @@ export default function AdminHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
-    overflow: "hidden",
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   list: { padding: spacing(4), paddingBottom: spacing(10) },
   summary: { flexDirection: "row", gap: spacing(3), marginBottom: spacing(4) },
   summaryItem: {

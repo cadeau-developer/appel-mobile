@@ -20,6 +20,7 @@ const STATUSES = [
   { key: "APPROVED", label: "Approved", icon: "checkmark-circle", color: colors.success, bg: colors.successLight },
   { key: "PENDING", label: "Pending", icon: "time-outline", color: colors.accent, bg: colors.accentLight },
   { key: "REJECTED", label: "Rejected", icon: "close-circle", color: colors.danger, bg: colors.dangerLight },
+  { key: "BLOCKED", label: "Blocked", icon: "lock-closed", color: colors.danger, bg: colors.dangerLight },
 ];
 
 export default function SchoolManagementScreen({ route, navigation }) {
@@ -27,20 +28,17 @@ export default function SchoolManagementScreen({ route, navigation }) {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const headmaster = school.users?.[0] || {};
-
   const [form, setForm] = useState({
     name: school.name || "",
     schoolType: school.schoolType || "",
     phone: school.phone || "",
     email: school.email || "",
-    headmasterName: headmaster.name || "",
-    headmasterPhone: headmaster.phone || "",
-    headmasterEmail: headmaster.email || "",
+    headmasterName: school.headmasterName || school.users?.[0]?.name || "",
+    headmasterPhone: school.headmasterPhone || school.users?.[0]?.phone || "",
     newPassword: "",
     confirmPassword: "",
   });
-  const [status, setStatus] = useState(school.status || "PENDING");
+  const [status, setStatus] = useState(["PENDING", "APPROVED", "REJECTED", "BLOCKED"].includes(school.status) ? school.status : "PENDING");
   const [location, setLocation] = useState({
     province: school.province || null,
     district: school.district || null,
@@ -91,48 +89,31 @@ export default function SchoolManagementScreen({ route, navigation }) {
       showToast("School name is required", "error");
       return;
     }
-    const hasHeadmaster = !!school.users?.[0];
-    const enteringHeadmaster = form.headmasterName.trim() || form.headmasterEmail.trim();
-    if (hasHeadmaster && (!form.headmasterName.trim() || !form.headmasterEmail.trim())) {
-      showToast("Headmaster name and email are required", "error");
-      return;
-    }
     if (form.phone.trim() && !isRwPhone(form.phone)) {
       showToast(PHONE_ERROR, "error");
+      return;
+    }
+    if (form.email.trim() && !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      showToast("Enter a valid school email", "error");
       return;
     }
     if (form.headmasterPhone.trim() && !isRwPhone(form.headmasterPhone)) {
       showToast(PHONE_ERROR, "error");
       return;
     }
-    if (!hasHeadmaster && enteringHeadmaster) {
-      if (!/^\S+@\S+\.\S+$/.test(form.headmasterEmail.trim())) {
-        showToast("Enter a valid headmaster email", "error");
-        return;
-      }
-      if (form.newPassword.length < 6) {
-        showToast("Set a headmaster password of at least 6 characters to create the account", "error");
-        return;
-      }
-      if (form.newPassword !== form.confirmPassword) {
-        showToast("Passwords do not match", "error");
-        return;
-      }
-    }
     const payload = {
       name: form.name.trim(),
       schoolType: form.schoolType,
       phone: form.phone.trim(),
-      email: form.email.trim(),
-      headmasterName: hasHeadmaster || enteringHeadmaster ? form.headmasterName.trim() : undefined,
-      headmasterPhone: hasHeadmaster || enteringHeadmaster ? form.headmasterPhone.trim() : undefined,
-      headmasterEmail: hasHeadmaster || enteringHeadmaster ? form.headmasterEmail.trim() : undefined,
+      email: form.email.trim() || null,
       status,
       province: location.province || null,
       district: location.district || null,
       sector: location.sector || null,
       cell: location.cell || null,
       village: location.village || null,
+      headmasterName: form.headmasterName.trim(),
+      headmasterPhone: form.headmasterPhone.trim() || null,
     };
     if (form.newPassword) {
       if (form.newPassword.length < 6) {
@@ -189,10 +170,13 @@ export default function SchoolManagementScreen({ route, navigation }) {
 
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Headmaster</Text>
-        <Input label="Headmaster name" icon="person-outline" value={form.headmasterName} onChangeText={set("headmasterName")} />
-        <Input label="Headmaster phone" icon="call-outline" value={form.headmasterPhone} onChangeText={(t) => set("headmasterPhone")(t.replace(/[^0-9]/g, ""))} placeholder="078… / 079… / 072… / 073…" keyboardType="phone-pad" />
-        <Input label="Headmaster email" icon="mail-outline" value={form.headmasterEmail} onChangeText={set("headmasterEmail")} placeholder="headmaster@school.rw" keyboardType="email-address" autoCapitalize="none" />
-        <Text style={styles.hint}>Leave the password fields blank to keep the current password.</Text>
+        <Input label="Headmaster full name" icon="person-circle-outline" value={form.headmasterName} onChangeText={set("headmasterName")} placeholder="e.g. Mukamana Jeanne" />
+        <Input label="Headmaster phone" icon="call-outline" value={form.headmasterPhone} onChangeText={(t) => set("headmasterPhone")(t.replace(/[^0-9]/g, ""))} placeholder="078. / 079. / 072. / 073." keyboardType="phone-pad" />
+      </Card>
+
+      <Card style={styles.card}>
+        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.hint}>Change the headmaster password if needed. Leave the password fields blank to keep the current password.</Text>
         <Input label="New password" icon="key-outline" value={form.newPassword} onChangeText={set("newPassword")} secureTextEntry placeholder="At least 6 characters" />
         <Input label="Confirm new password" icon="lock-closed-outline" value={form.confirmPassword} onChangeText={set("confirmPassword")} secureTextEntry placeholder="Repeat the new password" />
       </Card>

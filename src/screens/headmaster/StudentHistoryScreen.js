@@ -20,9 +20,9 @@ export default function StudentHistoryScreen({ route }) {
     queryFn: () => fetchStudentHistory(studentId),
   });
 
-  const days = data?.unavailableDays || [];
-  const cases = data?.disciplineCases || [];
-  const stats = data?.stats;
+  const days = Array.isArray(data?.unavailableDays) ? data.unavailableDays : [];
+  const cases = Array.isArray(data?.disciplineCases) ? data.disciplineCases : [];
+  const stats = data?.stats || { recordedDays: 0, presentCount: 0, unavailableCount: 0, presenceRate: 0 };
 
   const ListHeader = (
     <View>
@@ -31,7 +31,7 @@ export default function StudentHistoryScreen({ route }) {
         <View style={{ flex: 1 }}>
           <Text style={typography.title}>{studentName}</Text>
           <Text style={typography.subtitle}>
-            {data ? `${data.student.class.name} · ${stats.recordedDays} day${stats.recordedDays === 1 ? "" : "s"} recorded` : "Loading…"}
+            {data ? `${data.student.class?.name || ""} · ${stats.recordedDays} day${stats.recordedDays === 1 ? "" : "s"} recorded` : "Loading..."}
           </Text>
         </View>
       </View>
@@ -44,11 +44,11 @@ export default function StudentHistoryScreen({ route }) {
           </View>
           <View style={[styles.stat, styles.statPresent]}>
             <Text style={styles.statValue}>{stats.presentCount}</Text>
-            <Text style={styles.statLabel}>Available</Text>
+            <Text style={styles.statLabel}>Present</Text>
           </View>
           <View style={[styles.stat, styles.statUnavailable]}>
             <Text style={styles.statValue}>{stats.unavailableCount}</Text>
-            <Text style={styles.statLabel}>Unavailable</Text>
+            <Text style={styles.statLabel}>Absent</Text>
           </View>
           <View style={[styles.stat, styles.statRate]}>
             <Text style={styles.statValue}>{stats.presenceRate}%</Text>
@@ -87,13 +87,13 @@ export default function StudentHistoryScreen({ route }) {
       ) : null}
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Unavailable days</Text>
+        <Text style={styles.sectionTitle}>Absence days</Text>
         <Badge tone="danger" label={`${days.length}`} />
       </View>
       <View style={styles.banner}>
         <Ionicons name="time-outline" size={18} color={colors.primary} />
         <Text style={styles.bannerText}>
-          Every recorded day this student was unavailable at school, with the reason chosen by the teacher.
+          Every recorded day this student was absent, with the reason chosen by the teacher.
         </Text>
       </View>
     </View>
@@ -110,8 +110,8 @@ export default function StudentHistoryScreen({ route }) {
           !isLoading ? (
             <EmptyState
               icon="checkmark-done-outline"
-              title="Always available"
-              subtitle="This student has been available on every recorded day."
+              title="No absences"
+              subtitle="This student was present on every recorded day."
             />
           ) : null
         }
@@ -122,9 +122,9 @@ export default function StudentHistoryScreen({ route }) {
                 <Ionicons name="calendar-outline" size={16} color={colors.danger} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.dayTitle}>{formatFullDate(item.date)}</Text>
+                <Text style={styles.dayTitle}>{item.date ? formatFullDate(item.date) : "-"}</Text>
               </View>
-              <Badge tone="danger" icon="close-circle" label="Unavailable" />
+              <Badge tone="danger" icon="close-circle" label="Absent" />
             </View>
             <View style={styles.dayReason}>
               <Text style={styles.reasonLabel}>Reason</Text>

@@ -20,6 +20,14 @@ export function rejectSchool(id) {
   return client.post(`/admin/schools/${id}/reject`).then((r) => r.data);
 }
 
+export function blockSchool(id) {
+  return client.post(`/admin/schools/${id}/block`).then((r) => r.data);
+}
+
+export function unblockSchool(id) {
+  return client.post(`/admin/schools/${id}/unblock`).then((r) => r.data);
+}
+
 export function updateSchool({ id, ...payload }) {
   return client.patch(`/admin/schools/${id}`, payload).then((r) => r.data);
 }

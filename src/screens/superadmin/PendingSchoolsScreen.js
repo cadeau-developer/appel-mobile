@@ -24,16 +24,14 @@ export default function PendingSchoolsScreen() {
   const { data: schools = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["pending-schools"],
     queryFn: fetchPendingSchools,
-    refetchInterval: 30000,
     refetchOnMount: true,
+    staleTime: 0,
   });
 
   useFocusEffect(
     useCallback(() => {
-      // A school is still being registered — let the optimistic entry stand.
-      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch, queryClient])
+    }, [refetch])
   );
 
   const invalidate = () => {
@@ -146,11 +144,16 @@ export default function PendingSchoolsScreen() {
                 <Ionicons name="mail-outline" size={14} color={colors.textMuted} /> {item.email || "—"}
               </Text>
             ) : null}
-            {item.users[0] ? (
+            {item.users?.[0]?.name || item.headmasterName ? (
               <View style={styles.headmasterRow}>
                 <Ionicons name="person-outline" size={14} color={colors.textMuted} />
                 <Text style={styles.detailRowText}>
-                  {item.users[0].name} · {item.users[0].email}
+                  {item.users?.[0]?.name || item.headmasterName}
+                  {item.users?.[0]?.email || item.users?.[0]?.phone
+                    ? ` · ${item.users[0].email || item.users[0].phone}`
+                    : item.headmasterPhone
+                    ? ` · ${item.headmasterPhone}`
+                    : ""}
                 </Text>
               </View>
             ) : null}

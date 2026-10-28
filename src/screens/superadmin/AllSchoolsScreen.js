@@ -10,7 +10,7 @@ import Badge from "../../components/Badge";
 import BrandHeader from "../../components/BrandHeader";
 import EmptyState from "../../components/EmptyState";
 import Avatar from "../../components/Avatar";
-import { fetchAllSchools, approveSchool, rejectSchool } from "../../api/admin";
+import { fetchAllSchools, approveSchool, rejectSchool, blockSchool, unblockSchool } from "../../api/admin";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { colors, radius, spacing, typography } from "../../theme";
@@ -19,6 +19,7 @@ const statusMeta = {
   APPROVED: { tone: "success", icon: "checkmark-circle", label: "Approved" },
   PENDING: { tone: "warning", icon: "time-outline", label: "Pending" },
   REJECTED: { tone: "danger", icon: "close-circle", label: "Rejected" },
+  BLOCKED: { tone: "danger", icon: "lock-closed", label: "Blocked" },
 };
 
 export default function AllSchoolsScreen({ navigation }) {
@@ -28,16 +29,14 @@ export default function AllSchoolsScreen({ navigation }) {
   const { data: schools = [], isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["all-schools"],
     queryFn: fetchAllSchools,
-    refetchInterval: 30000,
     refetchOnMount: true,
+    staleTime: 0,
   });
 
   useFocusEffect(
     useCallback(() => {
-      // A school is still being registered — let the optimistic entry stand.
-      if (queryClient.isMutating({ mutationKey: ["create-school"] }) > 0) return;
       refetch();
-    }, [refetch, queryClient])
+    }, [refetch])
   );
 
   const approveMutation = useMutation({
@@ -86,15 +85,62 @@ export default function AllSchoolsScreen({ navigation }) {
     },
   });
 
+  const blockMutation = useMutation({
+    mutationFn: blockSchool,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["all-schools"] });
+      const prev = queryClient.getQueryData(["all-schools"]);
+      queryClient.setQueryData(["all-schools"], (old = []) =>
+        (old || []).map((s) => (s.id === id ? { ...s, status: "BLOCKED" } : s))
+      );
+      return { prev };
+    },
+    onSuccess: () => {
+      showToast("School blocked", "info");
+    },
+    onError: (err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["all-schools"], ctx.prev);
+      showToast(err.response?.data?.error || "Could not block school", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-schools"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-schools"] });
+    },
+  });
+
+  const unblockMutation = useMutation({
+    mutationFn: unblockSchool,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["all-schools"] });
+      const prev = queryClient.getQueryData(["all-schools"]);
+      queryClient.setQueryData(["all-schools"], (old = []) =>
+        (old || []).map((s) => (s.id === id ? { ...s, status: "APPROVED" } : s))
+      );
+      return { prev };
+    },
+    onSuccess: () => {
+      showToast("School unblocked", "success");
+    },
+    onError: (err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(["all-schools"], ctx.prev);
+      showToast(err.response?.data?.error || "Could not unblock school", "error");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-schools"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-schools"] });
+    },
+  });
+
   const approved = schools.filter((s) => s.status === "APPROVED").length;
   const pending = schools.filter((s) => s.status === "PENDING").length;
   const rejected = schools.filter((s) => s.status === "REJECTED").length;
+  const blocked = schools.filter((s) => s.status === "BLOCKED").length;
 
   return (
     <Screen scroll={false}>
       <BrandHeader
         title="Schools"
-        subtitle={`${approved} approved · ${pending} pending · ${rejected} rejected`}
+        subtitle={`${approved} approved · ${pending} pending · ${rejected} rejected${blocked ? ` · ${blocked} blocked` : ""}`}
         icon="apps-outline"
         right={
           <>
@@ -153,20 +199,24 @@ export default function AllSchoolsScreen({ navigation }) {
                   <Text style={styles.meta} numberOfLines={1}>
                     {[item.schoolType, item.city].filter(Boolean).join(" · ") || "School"}
                   </Text>
-                  {item.users[0] ? (
+                  {item.users?.[0]?.name || item.headmasterName ? (
                     <Text style={styles.meta} numberOfLines={1}>
-                      {item.users[0].name}
+                      {item.users?.[0]?.name || item.headmasterName}
                     </Text>
                   ) : null}
                 </View>
                 <View style={styles.rightCol}>
-                  <Badge tone={statusMeta[item.status].tone} icon={statusMeta[item.status].icon} label={statusMeta[item.status].label} />
+                  <Badge
+                    tone={(statusMeta[item.status] || statusMeta.PENDING)?.tone || "neutral"}
+                    icon={(statusMeta[item.status] || statusMeta.PENDING)?.icon}
+                    label={(statusMeta[item.status] || statusMeta.PENDING)?.label || item.status}
+                  />
                   <Text style={styles.manageText}>
                     Manage <Ionicons name="chevron-forward" size={12} color={colors.primary} />
                   </Text>
                 </View>
               </View>
-              {item.status === "PENDING" ? (
+              {["PENDING", "REJECTED", "BLOCKED"].includes(item.status) ? (
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={styles.actionBtn}
@@ -176,13 +226,37 @@ export default function AllSchoolsScreen({ navigation }) {
                     <Ionicons name="checkmark" size={16} color="#fff" />
                     <Text style={styles.actionApproveText}>Approve</Text>
                   </TouchableOpacity>
+                  {item.status === "PENDING" ? (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.actionRejectBtn]}
+                      onPress={() => rejectMutation.mutate(item.id)}
+                      disabled={rejectMutation.isPending && rejectMutation.variables === item.id}
+                    >
+                      <Ionicons name="close" size={16} color={colors.danger} />
+                      <Text style={styles.actionRejectText}>Reject</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {item.status === "BLOCKED" ? (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.actionRejectBtn]}
+                      onPress={() => unblockMutation.mutate(item.id)}
+                      disabled={unblockMutation.isPending && unblockMutation.variables === item.id}
+                    >
+                      <Ionicons name="lock-open-outline" size={16} color={colors.danger} />
+                      <Text style={styles.actionRejectText}>Unblock</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
+              {item.status === "APPROVED" ? (
+                <View style={styles.actions}>
                   <TouchableOpacity
                     style={[styles.actionBtn, styles.actionRejectBtn]}
-                    onPress={() => rejectMutation.mutate(item.id)}
-                    disabled={rejectMutation.isPending && rejectMutation.variables === item.id}
+                    onPress={() => blockMutation.mutate(item.id)}
+                    disabled={blockMutation.isPending && blockMutation.variables === item.id}
                   >
-                    <Ionicons name="close" size={16} color={colors.danger} />
-                    <Text style={styles.actionRejectText}>Reject</Text>
+                    <Ionicons name="lock-closed-outline" size={16} color={colors.danger} />
+                    <Text style={styles.actionRejectText}>Block</Text>
                   </TouchableOpacity>
                 </View>
               ) : null}

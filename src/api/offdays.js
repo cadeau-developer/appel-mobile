@@ -1,7 +1,7 @@
 import client from "./client";
 
 export function fetchOffDays() {
-  return client.get("/off-days").then((r) => r.data.offDays);
+  return client.get("/off-days").then((r) => r.data);
 }
 
 // Full response for the headmaster screen: scheduled off days + days the

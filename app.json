@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "Attendance",
+    "name": "Appel",
     "slug": "cahier-d-appel",
     "version": "1.0.0",
     "scheme": "attendance",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#2563EB",
     "newArchEnabled": false,
     "icon": "./assets/logo.png",
     "assetBundlePatterns": [
@@ -19,13 +20,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cahierdappel.mobile",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "backgroundColor": "#2563EB"
     },
     "android": {
       "package": "com.cahierdappel.mobile",
-      "versionCode": 11,
+      "versionCode": 13,
+      "backgroundColor": "#2563EB",
       "edgeToEdgeEnabled": false,
-      "softwareKeyboardLayoutMode": "resize",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#2563EB"
@@ -38,8 +41,8 @@
     },
     "web": {
       "bundler": "metro",
-      "name": "Attendance",
-      "shortName": "Attendance",
+      "name": "Appel",
+      "shortName": "Appel",
       "themeColor": "#2563EB",
       "backgroundColor": "#E8F2FF",
       "favicon": "./assets/logo.png"
@@ -49,8 +52,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow Attendance to use your camera to take profile and student photos.",
-          "photosPermission": "Allow Attendance to access your photos for profiles, students and school logos.",
+          "cameraPermission": "Allow Appel to use your camera to take profile and student photos.",
+          "photosPermission": "Allow Appel to access your photos for profiles, students and school logos.",
           "microphonePermission": false
         }
       ],

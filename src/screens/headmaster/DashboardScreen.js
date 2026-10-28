@@ -51,11 +51,12 @@ export default function DashboardScreen({ navigation }) {
   });
 
   const stats = data?.stats;
-  const maxCount = Math.max(MAX_BAR, ...(data?.weekly || []).map((w) => w.count));
-  const genderEntries = data?.genderCounts ? Object.entries(data.genderCounts) : [];
-  const totalStudents = genderEntries.reduce((sum, [, c]) => sum + c, 0);
-  const absentGenderEntries = data?.absentGenderCounts ? Object.entries(data.absentGenderCounts) : [];
-  const totalAbsent = absentGenderEntries.reduce((sum, [, c]) => sum + c, 0);
+  const weekly = data?.weekly || [];
+  const maxCount = Math.max(MAX_BAR, ...weekly.map((w) => w.count));
+  const genderEntries = Object.entries(data?.genderCounts || {}).filter(([, c]) => c !== null && c !== undefined);
+  const totalStudents = genderEntries.reduce((sum, [, c]) => sum + (Number(c) || 0), 0);
+  const absentGenderEntries = Object.entries(data?.absentGenderCounts || {}).filter(([, c]) => c !== null && c !== undefined);
+  const totalAbsent = absentGenderEntries.reduce((sum, [, c]) => sum + (Number(c) || 0), 0);
   const presentToday = (stats?.totalStudents ?? 0) - totalAbsent;
 
   return (

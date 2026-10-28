@@ -31,7 +31,7 @@ export default function StudentRow({ student, unavailable, reason, onToggle, onR
             <Ionicons name="checkmark-circle" size={14} color={colors.success} />
           )}
           <Text style={[styles.pillText, unavailable && styles.pillTextUnavailable, disabled && styles.pillTextDisabled]}>
-            {unavailable ? "Unavailable" : "Available"}
+            {unavailable ? "Absent" : "Present"}
           </Text>
         </TouchableOpacity>
       </View>

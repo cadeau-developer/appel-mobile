@@ -33,7 +33,7 @@ export default function AttendanceReportScreen({ navigation }) {
           <View>
             <Text style={typography.title}>Attendance report</Text>
             <Text style={[typography.subtitle, styles.mt]}>
-              Students marked unavailable across the school on the selected day.
+              Students marked absent across the school on the selected day.
             </Text>
 
             <Card style={styles.dateCard}>
@@ -55,7 +55,7 @@ export default function AttendanceReportScreen({ navigation }) {
                 ) : null}
                 <Text style={styles.dateTitle}>{formatFullDate(date)}</Text>
                 <Text style={styles.dateCount}>
-                  {list.length} unavailable student{list.length === 1 ? "" : "s"}
+                  {list.length} absent student{list.length === 1 ? "" : "s"}
                 </Text>
               </View>
               <TouchableOpacity
@@ -106,8 +106,8 @@ export default function AttendanceReportScreen({ navigation }) {
           !isLoading ? (
             <EmptyState
               icon="checkmark-done-outline"
-              title="No one unavailable"
-              subtitle="Every submitted student was available that day."
+              title="No absences"
+              subtitle="Every submitted student was present that day."
             />
           ) : null
         }
